@@ -6,11 +6,11 @@ het markeringskader van MS Excel. In een andere vorm wordt dit ook wel
 Marching Ants genoemd.
 Zie ook http://www.nldelphi.com/Forum/showthread.php?threadid=16633
 
-  Het MarkableControl is er in twee versies, een TNLDMarkableGraphicControl en
-een TNLDMarkableCustomControl. De markeringsstreepjes worden getekend op de
-Canvas van het Control en worden verwijderd met Paint. Deze Paint moet in een
-descender gemaakt worden, aangezien de Paint van TCustom/GraphicControl niets
-doet en ik eventuele descenders niet in de weg wilde lopen.
+  Het MarkableControl is er in twee versies, een TNLDMarkableGraphicControl en een
+TNLDMarkableCustomControl. De markeringsstreepjes worden getekend op de Canvas van
+het Control en worden verwijderd met Paint. Deze Paint moet in een descender
+gemaakt worden, aangezien de Paint van TCustom/GraphicControl niets doet en ik
+eventuele descenders niet in de weg wilde lopen.
 
   De markering is in en uit te schakelen met de methods Mark en UnMark. Intern
 wordt een counter bijgehouden hoevaak het Control gemarkt is. Bij een gelijk
@@ -44,6 +44,11 @@ Openstaande ideeën:
 * Property MarkLength
 * ....
 
+Nog te doen:
+* Het tekenen van de streepjes gebeurd nu nog met de Pixels-property van het
+  Canvas, maar misschien is het efficienter om een custom linetype te
+  definiëren en deze met LineTo te tekenen.
+
 Veel plezier...
 }
 
@@ -67,7 +72,8 @@ type
     constructor Create(AOwner: TComponent); override;
     procedure Mark;
     procedure UnMark(const ZeroCounter: Boolean = False);
-    property Marked: Boolean read GetMarked write SetMarked;
+  published
+    property Marked: Boolean read GetMarked write SetMarked default False;
   end;
 
   TNLDMarkableCustomControl = class(TCustomControl)
@@ -82,7 +88,8 @@ type
     constructor Create(AOwner: TComponent); override;
     procedure Mark;
     procedure UnMark(const ZeroCounter: Boolean = False);
-    property Marked: Boolean read GetMarked write SetMarked;
+  published
+    property Marked: Boolean read GetMarked write SetMarked default False;
   end;
 
 implementation
@@ -166,7 +173,7 @@ begin
   SetMarked(False);
 end;
 
-{ TMarkableCustomControl }
+{ TNLDMarkableCustomControl }
 
 constructor TNLDMarkableCustomControl.Create(AOwner: TComponent);
 begin

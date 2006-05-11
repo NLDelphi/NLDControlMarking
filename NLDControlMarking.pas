@@ -1,4 +1,4 @@
-{
+(*****************************************************************************
 Omschrijving:
   Een MarkableControl toont m.b.v. een Timer-event een 'wandelend'
 selectiekader rond een T(Win)Control van 2 pixels breed, ongeveer gelijk aan
@@ -6,15 +6,16 @@ het markeringskader van MS Excel. In een andere vorm wordt dit ook wel
 Marching Ants genoemd.
 Zie ook http://www.nldelphi.com/Forum/showthread.php?threadid=16633
 
-  Het MarkableControl is er in twee versies, een TNLDMarkableGraphicControl en een
-TNLDMarkableCustomControl. De markeringsstreepjes worden getekend op de Canvas van
-het Control en worden verwijderd met Paint. Deze Paint moet in een descender
-gemaakt worden, aangezien de Paint van TCustom/GraphicControl niets doet en ik
-eventuele descenders niet in de weg wilde lopen.
-
+Gebruik:
+  Het MarkableControl is er in twee versies, een TNLDMarkableGraphicControl
+en een TNLDMarkableCustomControl. De markeringsstreepjes worden getekend op de
+Canvas van het Control en worden verwijderd met Paint. Deze Paint moet in een
+descender gemaakt worden, aangezien de Paint van TCustom/GraphicControl niets
+doet en ik eventuele descenders niet in de weg wilde lopen.
   De markering is in en uit te schakelen met de methods Mark en UnMark. Intern
-wordt een counter bijgehouden hoevaak het Control gemarkt is. Bij een gelijk
-aantal aaroepen van UnMark wordt de markering opgeheven.
+wordt een counter bijgehouden hoevaak het Control gemarkeerd is. Bij een
+gelijk aantal aanroepen van UnMark wordt de markering opgeheven, of als de
+property Marked op False wordt gezet.
 
 Oorsprong:
   Ik wilde voor een planning-programma een duidelijk in het oog springend
@@ -24,15 +25,15 @@ genoeg vanwege de aanwezige gridlines, en een kleur was niet duidelijk genoeg,
 want ik werkte al met meerdere kleuren voor de Planning-items.
 
 Voordelen:
-* In één applicatie, meerdere markeringen! (Dit kan bijvoorbeeld niet in Excel)
+* In één applicatie, meerdere markeringen (dit kan bijvoorbeeld niet in Excel)
 
 Nadelen:
 * Indien een descender een Control plaatst, daar waar de markeringsstreepjes
   moeten gaan lopen, zijn die niet meer zichtbaar; het canvas ligt per
-  definitie altijd op de onderste laag. Een evt. oplossing is de Anchors in te
-  stellen van de ClientControl.
+  definitie altijd op de onderste laag. Verplaatsen van dat Control is dan de
+  enige oplossing.
 * Bij vele markeringen flinke belasting van de processor vanwege het aantal
-  Timers
+  Timers.
 
 Bugs:
 * Voor zover ik weet zijn er geen bugs.
@@ -44,13 +45,16 @@ Openstaande ideeën:
 * Property MarkLength
 * ....
 
-Nog te doen:
+Nog te onderzoeken:
 * Het tekenen van de streepjes gebeurd nu nog met de Pixels-property van het
   Canvas, maar misschien is het efficienter om een custom linetype te
-  definiëren en deze met LineTo te tekenen.
+  definiëren en deze met LineTo/PolyLine te tekenen.
+  Zie ook http://www.nldelphi.com/Forum/showthread.php?t=22368
 
 Veel plezier...
-}
+
+Albert de Weerd (NGLN)
+******************************************************************************)
 
 unit NLDMarkableControl;
 
@@ -71,7 +75,7 @@ type
   public
     constructor Create(AOwner: TComponent); override;
     procedure Mark;
-    procedure UnMark(const ZeroCounter: Boolean = False);
+    procedure UnMark;
   published
     property Marked: Boolean read GetMarked write SetMarked default False;
   end;
@@ -87,15 +91,25 @@ type
   public
     constructor Create(AOwner: TComponent); override;
     procedure Mark;
-    procedure UnMark(const ZeroCounter: Boolean = False);
+    procedure UnMark;
   published
     property Marked: Boolean read GetMarked write SetMarked default False;
   end;
 
+procedure Register;
+
 implementation
+
+{$R *.RES}
 
 uses
   Graphics;
+
+procedure Register;
+begin
+  RegisterComponents('NLDelphi', [TNLDMarkableGraphicControl,
+    TNLDMarkableCustomControl]);
+end;
 
 { TNLDMarkableGraphicControl }
 
@@ -116,7 +130,8 @@ end;
 
 procedure TNLDMarkableGraphicControl.Mark;
 begin
-  SetMarked(True);
+  Inc(MarkCounter);
+  MarkTimer.Enabled := MarkCounter > 0;
 end;
 
 procedure TNLDMarkableGraphicControl.OnMarkTimer(Sender: TObject);
@@ -156,24 +171,26 @@ end;
 
 procedure TNLDMarkableGraphicControl.SetMarked(const Value: Boolean);
 begin
-  if Value then
-    Inc(MarkCounter)
-  else
-    if MarkCounter > 0 then
-      Dec(MarkCounter);
+  if Value <> GetMarked then
+    if Value then
+      Mark
+    else
+    begin
+      MarkCounter := 0;
+      UnMark;
+    end;
+end;
+
+procedure TNLDMarkableGraphicControl.UnMark;
+begin
+  if MarkCounter > 0 then
+    Dec(MarkCounter);
   MarkTimer.Enabled := MarkCounter > 0;
   if MarkCounter = 0 then
     Paint;
 end;
 
-procedure TNLDMarkableGraphicControl.UnMark(const ZeroCounter: Boolean = False);
-begin
-  if ZeroCounter then
-    MarkCounter := 0;
-  SetMarked(False);
-end;
-
-{ TNLDMarkableCustomControl }
+{ TMarkableCustomControl }
 
 constructor TNLDMarkableCustomControl.Create(AOwner: TComponent);
 begin
@@ -192,7 +209,8 @@ end;
 
 procedure TNLDMarkableCustomControl.Mark;
 begin
-  SetMarked(True);
+  Inc(MarkCounter);
+  MarkTimer.Enabled := MarkCounter > 0;
 end;
 
 procedure TNLDMarkableCustomControl.OnMarkTimer(Sender: TObject);
@@ -230,21 +248,23 @@ end;
 
 procedure TNLDMarkableCustomControl.SetMarked(const Value: Boolean);
 begin
-  if Value then
-    Inc(MarkCounter)
-  else
-    if MarkCounter > 0 then
-      Dec(MarkCounter);
+  if Value <> GetMarked then
+    if Value then
+      Mark
+    else
+    begin
+      MarkCounter := 0;
+      UnMark;
+    end;
+end;
+
+procedure TNLDMarkableCustomControl.UnMark;
+begin
+  if MarkCounter > 0 then
+    Dec(MarkCounter);
   MarkTimer.Enabled := MarkCounter > 0;
   if MarkCounter = 0 then
     Paint;
-end;
-
-procedure TNLDMarkableCustomControl.UnMark(const ZeroCounter: Boolean);
-begin
-  if ZeroCounter then
-    MarkCounter := 0;
-  SetMarked(False);
 end;
 
 end.
